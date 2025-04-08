@@ -35,19 +35,19 @@ const Chatbot = () => {
     <div className="fixed bottom-5 right-5 flex flex-col items-end">
       {/* Chat Toggle Button */}
       <button 
-        className="bg-blue-500 text-white px-4 py-2 rounded-full shadow-xl hover:bg-blue-600 transition-all" 
+        className="bg-gray-900 text-white px-4 py-2 rounded-xl shadow-xl hover:bg-black transition-all duration-300" 
         onClick={() => setIsOpen(!isOpen)}
       >
         💬 Chat
       </button>
 
       {isOpen && (
-        <div className="w-80 bg-white shadow-2xl rounded-xl mt-3 p-4 border border-gray-200">
+        <div className="w-80 bg-white/90 backdrop-blur-sm shadow-2xl rounded-xl mt-3 p-4 border border-gray-100">
           {/* Chat Header */}
-          <div className="flex justify-between items-center border-b pb-2">
-            <h2 className="text-lg font-bold text-gray-700">AI Chatbot</h2>
+          <div className="flex justify-between items-center border-b border-gray-200 pb-2">
+            <h2 className="text-lg font-bold text-gray-900">AI Chatbot</h2>
             <button 
-              className="text-gray-500 hover:text-gray-700"
+              className="text-gray-600 hover:text-gray-900 transition-all duration-300"
               onClick={() => setIsOpen(false)}
             >
               ✖
@@ -59,7 +59,11 @@ const Chatbot = () => {
             {messages.map((msg, index) => (
               <div 
                 key={index} 
-                className={`p-3 rounded-xl max-w-xs ${msg.sender === "user" ? "bg-blue-500 text-white self-end ml-auto" : "bg-gray-200 text-black self-start"}`}
+                className={`p-3 rounded-xl max-w-xs ${
+                  msg.sender === "user" 
+                    ? "bg-gray-900 text-white self-end ml-auto" 
+                    : "bg-gray-100 text-gray-900 self-start border border-gray-200"
+                }`}
               >
                 {msg.text}
               </div>
@@ -67,16 +71,16 @@ const Chatbot = () => {
           </div>
 
           {/* Input Field */}
-          <div className="flex mt-3 border-t pt-2">
+          <div className="flex mt-3 border-t border-gray-200 pt-2">
             <input 
               type="text" 
-              className="flex-1 border rounded-l-xl p-2 outline-none focus:ring-2 focus:ring-blue-300" 
+              className="flex-1 border border-gray-200 rounded-l-xl p-2 outline-none focus:ring-2 focus:ring-gray-300 bg-gray-50" 
               placeholder="Type a message..." 
               value={input} 
               onChange={(e) => setInput(e.target.value)}
             />
             <button 
-              className="bg-blue-500 text-white px-4 rounded-r-xl hover:bg-blue-600 transition-all" 
+              className="bg-gray-900 text-white px-4 rounded-r-xl hover:bg-black transition-all duration-300" 
               onClick={sendMessage}
             >
               ➤

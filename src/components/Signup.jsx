@@ -74,38 +74,93 @@ const Signup = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} encType="multipart/form-data">
-      <input type="text" placeholder="Name" {...register("name", { required: true })} />
-      <input
-        type="email"
-        placeholder="Email"
-        {...register("email", { required: true })}
-        onChange={(e) => setEmail(e.target.value)}
-      />
-      <button type="button" onClick={handleSendOTP}>
-        Send OTP
-      </button>
-      {otpSent && (
-        <>
+    <form onSubmit={handleSubmit(onSubmit)} encType="multipart/form-data" className="space-y-4">
+      <div className="space-y-4">
+        <input 
+          type="text" 
+          placeholder="Organization Name" 
+          {...register("name", { required: true })} 
+          className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-gray-300 outline-none bg-gray-50"
+        />
+        
+        <div className="flex gap-2">
           <input
-            type="text"
-            placeholder="Enter OTP"
-            value={userOtp}
-            onChange={(e) => setUserOtp(e.target.value)}
+            type="email"
+            placeholder="Email"
+            {...register("email", { required: true })}
+            onChange={(e) => setEmail(e.target.value)}
+            className="flex-1 p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-gray-300 outline-none bg-gray-50"
           />
-          <input type="password" placeholder="Password" {...register("password", { required: true })} />
-          <input type="password" placeholder="Re-enter Password" {...register("rePassword", { required: true })} />
-          <input type="file" accept="image/*" onChange={(e) => setLogo(e.target.files[0])} />
-          <p>Captcha: {captcha}</p>
-          <input
-            type="text"
-            placeholder="Enter Captcha"
-            value={captchaInput}
-            onChange={(e) => setCaptchaInput(e.target.value)}
-          />
-          <button type="submit">Signup</button>
-        </>
-      )}
+          <button 
+            type="button" 
+            onClick={handleSendOTP}
+            className="bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-black transition-all duration-300"
+          >
+            Send OTP
+          </button>
+        </div>
+
+        {otpSent && (
+          <div className="space-y-4">
+            <input
+              type="text"
+              placeholder="Enter OTP"
+              value={userOtp}
+              onChange={(e) => setUserOtp(e.target.value)}
+              className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-gray-300 outline-none bg-gray-50"
+            />
+            
+            <div className="grid grid-cols-2 gap-4">
+              <input 
+                type="password" 
+                placeholder="Password" 
+                {...register("password", { required: true })}
+                className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-gray-300 outline-none bg-gray-50"
+              />
+              <input 
+                type="password" 
+                placeholder="Re-enter Password" 
+                {...register("rePassword", { required: true })}
+                className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-gray-300 outline-none bg-gray-50"
+              />
+            </div>
+
+            <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center">
+              <input 
+                type="file" 
+                accept="image/*" 
+                onChange={(e) => setLogo(e.target.files[0])} 
+                className="hidden"
+                id="logo-upload"
+              />
+              <label 
+                htmlFor="logo-upload"
+                className="cursor-pointer text-gray-600 hover:text-gray-900 transition-all duration-300"
+              >
+                Upload Organization Logo
+              </label>
+            </div>
+
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+              <p className="text-gray-600 mb-2">Captcha: <span className="font-medium text-gray-900">{captcha}</span></p>
+              <input
+                type="text"
+                placeholder="Enter Captcha"
+                value={captchaInput}
+                onChange={(e) => setCaptchaInput(e.target.value)}
+                className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-gray-300 outline-none bg-white"
+              />
+            </div>
+
+            <button 
+              type="submit"
+              className="w-full bg-gray-900 text-white p-3 rounded-lg hover:bg-black transition-all duration-300 shadow-sm hover:shadow-md"
+            >
+              Sign Up
+            </button>
+          </div>
+        )}
+      </div>
     </form>
   );
 };

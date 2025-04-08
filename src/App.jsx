@@ -10,8 +10,10 @@ import OrgDash from "./screen/OrgDash";
 import About from "./components/about";
 import Contact from "./components/Contact";
 import ManageEmployee from "./components/ManageEmployee";
-import AddEmployee from './components/AddEmployee'
+import AddEmployee from './components/AddEmployee';
 import AppInitializer from "./components/AppInitializer";
+import MonthlyAttendance from './components/MonthlyAttendance';
+
 function App() {
   return (
     <Router>
@@ -28,6 +30,7 @@ function App() {
         <Route path="/contact" element={<Contact />} />
         <Route path="/manageEmployee" element={<ManageEmployee />} />
         <Route path="/addEmployee" element={<AddEmployee />} />
+        <Route path="/monthlyAttendance" element={<MonthlyAttendance />} />
       </Routes>
       {/* <AppInitializer/> */}
       {/* ✅ Show Chatbot on every page */}

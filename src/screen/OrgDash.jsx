@@ -3,8 +3,18 @@ import { Link, useNavigate } from "react-router-dom";
 
 const OrgDash = () => {
   const navigate = useNavigate();
-  const [name, setName] = useState("Organization");
-  const [logo, setLogo] = useState(null);
+  const [orgData, setOrgData] = useState({
+    organization: {
+      name: "Organization",
+      logo: null,
+      email: ""
+    },
+    stats: {
+      query_count: 0,
+      employee_count: 0,
+      attendance_today: 0
+    }
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -15,7 +25,7 @@ const OrgDash = () => {
     const fetchOrgData = async () => {
       try {
         setLoading(true);
-        const response = await fetch("http://127.0.0.1:8000/api/org/dashboard/", {
+        const response = await fetch("http://localhost:8000/api/org/dashboard/", {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -28,8 +38,7 @@ const OrgDash = () => {
         }
 
         const data = await response.json();
-        setName(data.organization.name || "Organization");
-        setLogo(data.organization.logo || null);
+        setOrgData(data);
       } catch (err) {
         console.error("Failed to fetch organization data:", err);
         setError("Failed to load organization data");
@@ -47,28 +56,70 @@ const OrgDash = () => {
   }, [token, navigate]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-purple-500 via-pink-500 to-red-500">
-      <div className="bg-white shadow-2xl rounded-2xl p-8 max-w-lg text-center">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-gray-900 to-gray-800">
+      <div className="bg-white/90 backdrop-blur-sm shadow-2xl rounded-2xl p-8 max-w-lg w-full border border-gray-100">
         {loading ? (
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-gray-600 text-center">
+            <span className="inline-block animate-pulse">Loading...</span>
+          </p>
         ) : error ? (
-          <p className="text-red-500">{error}</p>
+          <p className="text-gray-800 bg-gray-100 p-4 rounded-lg text-center">{error}</p>
         ) : (
           <>
-            <h1 className="text-3xl font-bold text-gray-800">Welcome, {name}</h1>
-            <div className="my-6">
-              {logo ? (
-                <img src={logo} alt="Organization Logo" className="h-32 w-32 object-contain mx-auto" />
+            <h1 className="text-3xl font-bold text-gray-900 mb-6 border-b border-gray-200 pb-4">
+              Welcome, {orgData.organization.name}
+            </h1>
+            <div className="my-8">
+              {orgData.organization.logo ? (
+                <img 
+                  src={orgData.organization.logo} 
+                  alt="Organization Logo" 
+                  className="h-32 w-32 object-contain mx-auto rounded-lg shadow-lg border border-gray-100"
+                />
               ) : (
-                <p className="text-gray-500">No logo available</p>
+                <div className="h-32 w-32 bg-gray-100 rounded-lg mx-auto flex items-center justify-center border-2 border-gray-200">
+                  <span className="text-gray-500">No logo</span>
+                </div>
               )}
             </div>
-            <Link to="/addEmployee" className="block bg-blue-500 text-white p-3 rounded-lg my-2">
-              Register Employee
-            </Link>
-            <Link to="/manageEmployee" className="block bg-blue-500 text-white p-3 rounded-lg">
-              Manage Employees
-            </Link>
+
+            {/* Stats Section */}
+            <div className="grid grid-cols-3 gap-4 mb-8">
+              <div className="bg-gray-100 p-6 rounded-xl border border-gray-200 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+                <h3 className="text-sm text-gray-700 font-semibold mb-2">Employees</h3>
+                <p className="text-3xl font-bold text-gray-900">
+                  {orgData.stats.employee_count}
+                </p>
+              </div>
+              <div className="bg-gray-100 p-6 rounded-xl border border-gray-200 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+                <h3 className="text-sm text-gray-700 font-semibold mb-2">Present Today</h3>
+                <p className="text-3xl font-bold text-gray-900">
+                  {orgData.stats.attendance_today}
+                </p>
+              </div>
+              <div className="bg-gray-100 p-6 rounded-xl border border-gray-200 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+                <h3 className="text-sm text-gray-700 font-semibold mb-2">Queries</h3>
+                <p className="text-3xl font-bold text-gray-900">
+                  {orgData.stats.query_count}
+                </p>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="space-y-4">
+              <Link 
+                to="/addEmployee" 
+                className="block bg-gray-900 hover:bg-black transition-all duration-300 text-white p-4 rounded-xl text-center shadow-sm hover:shadow-xl font-medium"
+              >
+                Register Employee
+              </Link>
+              <Link 
+                to="/manageEmployee" 
+                className="block bg-white border-2 border-gray-900 text-gray-900 hover:bg-gray-50 transition-all duration-300 p-4 rounded-xl text-center font-medium"
+              >
+                Manage Employees
+              </Link>
+            </div>
           </>
         )}
       </div>

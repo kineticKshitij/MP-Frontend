@@ -85,44 +85,69 @@ const Signin = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
-      <input
-        type="email"
-        placeholder="Email"
-        {...register("email", { required: true })}
-        onChange={(e) => {
-          setEmail(e.target.value);
-          setValue("email", e.target.value);
-        }}
-        value={email}
-      />
-      <button type="button" onClick={sendOTPHandler} disabled={otpSent}>
-        Send OTP
-      </button>
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <div className="space-y-4">
+        <div className="flex gap-2">
+          <input
+            type="email"
+            placeholder="Email"
+            {...register("email", { required: true })}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setValue("email", e.target.value);
+            }}
+            value={email}
+            className="flex-1 p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-gray-300 outline-none bg-gray-50"
+          />
+          <button 
+            type="button" 
+            onClick={sendOTPHandler} 
+            disabled={otpSent}
+            className="bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-black transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Send OTP
+          </button>
+        </div>
 
-      {otpSent && (
-        <>
-          <input
-            type="text"
-            placeholder="Enter OTP"
-            value={userOtp}
-            onChange={(e) => setUserOtp(e.target.value)}
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            {...register("password", { required: true })}
-          />
-          <p>Captcha: {captchaQuestion}</p>
-          <input
-            type="text"
-            placeholder="Enter Captcha"
-            value={captchaInput}
-            onChange={(e) => setCaptchaInput(e.target.value)}
-          />
-          <button type="submit">Signin</button>
-        </>
-      )}
+        {otpSent && (
+          <div className="space-y-4">
+            <input
+              type="text"
+              placeholder="Enter OTP"
+              value={userOtp}
+              onChange={(e) => setUserOtp(e.target.value)}
+              className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-gray-300 outline-none bg-gray-50"
+            />
+            
+            <input
+              type="password"
+              placeholder="Password"
+              {...register("password", { required: true })}
+              className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-gray-300 outline-none bg-gray-50"
+            />
+
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+              <p className="text-gray-600 mb-2">
+                Captcha: <span className="font-medium text-gray-900">{captchaQuestion}</span>
+              </p>
+              <input
+                type="text"
+                placeholder="Enter Captcha"
+                value={captchaInput}
+                onChange={(e) => setCaptchaInput(e.target.value)}
+                className="w-full p-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-gray-300 outline-none bg-white"
+              />
+            </div>
+
+            <button 
+              type="submit"
+              className="w-full bg-gray-900 text-white p-3 rounded-lg hover:bg-black transition-all duration-300 shadow-sm hover:shadow-md"
+            >
+              Sign In
+            </button>
+          </div>
+        )}
+      </div>
     </form>
   );
 };
