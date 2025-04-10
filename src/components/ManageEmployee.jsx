@@ -1,36 +1,73 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import axios from "axios"; // Add this import
-import { utils as xlsxUtils, writeFile as xlsxWriteFile } from 'xlsx';
+import axios from "axios";
+import { utils as xlsxUtils, writeFile as xlsxWriteFile } from "xlsx";
+
+// AttendanceTable Component
+const AttendanceTable = ({ loading, error, attendanceData }) => {
+  return (
+    <div>
+      <h3>Attendance Records</h3>
+      {loading && <p>Loading...</p>}
+      {error && <p style={{ color: "red" }}>{error}</p>}
+      <table border="1" style={{ width: "100%", borderCollapse: "collapse" }}>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Employee</th>
+            <th>Time</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {attendanceData && Object.keys(attendanceData).length > 0 ? (
+            Object.entries(attendanceData).map(([date, records]) =>
+              records.map((record, index) => (
+                <tr key={`${date}-${index}`}>
+                  <td>{date}</td>
+                  <td>{record.employeeName}</td>
+                  <td>{record.time}</td>
+                  <td>{record.status}</td>
+                </tr>
+              ))
+            )
+          ) : (
+            <tr>
+              <td colSpan="4">No attendance data available</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+};
 
 const ManageEmployee = () => {
   const [employees, setEmployees] = useState([]);
   const [orgName, setOrgName] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [attendanceData, setAttendanceData] = useState([]);
-  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM format
+  // Use an object to store attendance data keyed by date
+  const [attendanceData, setAttendanceData] = useState({});
+  const [selectedMonth, setSelectedMonth] = useState(
+    new Date().toISOString().slice(0, 7)
+  ); // YYYY-MM format
   const [pagination, setPagination] = useState({
     currentPage: 1,
     pageSize: 10,
     totalPages: 1,
-    totalEmployees: 0
+    totalEmployees: 0,
   });
-  const [monthInfo, setMonthInfo] = useState({ days_in_month: 31 }); // Update your state declarations
+  const [monthInfo, setMonthInfo] = useState({ days_in_month: 31 });
 
-  // Retrieve your JWT token from localStorage
   const token = localStorage.getItem("access_token");
 
-  // Helper function to format date
+  // Helper function to format date in YYYY-MM-DD
   const formatDate = (year, month, day) => {
-    return `${year}-${month.padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+    return `${year}-${month.padStart(2, "0")}-${day.toString().padStart(2, "0")}`;
   };
 
-  const isToday = (dateString) => {
-    const today = new Date().toISOString().slice(0, 10);
-    return dateString === today;
-  };
-
+  // Fetch employees for the authenticated organization
   const fetchEmployees = async (page = 1) => {
     try {
       setLoading(true);
@@ -54,16 +91,13 @@ const ManageEmployee = () => {
         currentPage: data.page,
         pageSize: data.page_size,
         totalPages: data.total_pages,
-        totalEmployees: data.total
+        totalEmployees: data.total,
       });
-      
-      // Get organization name from dashboard API
+
+      // Fetch organization name from dashboard API
       const dashboardResponse = await fetch("http://127.0.0.1:8000/api/org/dashboard/", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
-      
       if (dashboardResponse.ok) {
         const dashData = await dashboardResponse.json();
         setOrgName(dashData.organization.name);
@@ -76,11 +110,15 @@ const ManageEmployee = () => {
     }
   };
 
+  // Fetch attendance data for the selected month
   const fetchAttendanceData = async () => {
     try {
-      const [year, month] = selectedMonth.split('-');
+      const [year, month] = selectedMonth.split("-");
+      setLoading(true);
+      setError(null);
+
       const response = await axios.get(
-        `http://127.0.0.1:8000/api/emp/attendance/monthly/${year}/${month}/`,
+        `http://localhost:8000/api/emp/attendance/monthly/${year}/${month}/`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -88,33 +126,47 @@ const ManageEmployee = () => {
         }
       );
 
-      if (response.data.status === 'success') {
-        // Transform the attendance records into the correct format
-        const formattedData = response.data.data.map(record => ({
-          date: record.date,
-          employee_name: record.employee_name,
-          employee_id: record.employee_id,
-          timestamp: new Date(record.timestamp).toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit'
-          }),
-          status: record.status
-        }));
+      console.log("Raw API Response:", response.data);
 
-        // Debug logs
-        console.log('API Response:', response.data);
-        console.log('Formatted Attendance Data:', formattedData);
-        
-        setAttendanceData(formattedData);
-        setMonthInfo({ 
-          days_in_month: new Date(year, month, 0).getDate() 
-        });
-        setError(null);
+      let dataArray = [];
+      let monthInfoData = { days_in_month: new Date(year, month, 0).getDate() };
+
+      // If the response is an object with a "data" property, use that,
+      // otherwise, assume the response data is directly an array.
+      if (response.data && Array.isArray(response.data)) {
+        dataArray = response.data;
+      } else if (response.data && Array.isArray(response.data.data)) {
+        dataArray = response.data.data;
+        monthInfoData = response.data.month_info || monthInfoData;
+      } else {
+        throw new Error("Invalid response format");
       }
+
+      // Transform the data into an object keyed by date
+      const formattedData = {};
+      dataArray.forEach((record) => {
+        // Map API fields to your expected keys.
+        // Adjust field names if needed.
+        const date = record.date;
+        if (!formattedData[date]) {
+          formattedData[date] = [];
+        }
+        formattedData[date].push({
+          employeeId: record.employee_id || record.employee, // if employee field is numeric id
+          employeeName: record.employee_name || "", // If not provided, leave as empty string
+          status: record.status,
+          time: record.timestamp || "",
+        });
+      });
+
+      console.log("Formatted Attendance Data:", formattedData);
+      setAttendanceData(formattedData);
+      setMonthInfo(monthInfoData);
     } catch (error) {
-      console.error("Error fetching attendance:", error);
-      setAttendanceData([]);
-      setError("Failed to fetch attendance data");
+      console.error("Fetch error:", error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -122,176 +174,126 @@ const ManageEmployee = () => {
     const newDate = e.target.value;
     if (!newDate) return;
 
-    const [year, month] = newDate.split('-');
+    const [year, month] = newDate.split("-");
     const currentDate = new Date();
     const selectedDate = new Date(year, month - 1);
-
     if (selectedDate > currentDate) {
       setError("Cannot select future dates");
       return;
     }
-
     setSelectedMonth(newDate);
     setError(null);
   };
 
+  // Export attendance data to Excel
   const exportToExcel = () => {
     try {
-      const [year, month] = selectedMonth.split('-');
-      const daysInMonth = Array.from({ length: monthInfo.days_in_month }, (_, i) => i + 1);
-      
+      const [year, month] = selectedMonth.split("-");
       const wsData = [
         // Header row
-        ['Employee Name', 'Employee ID', 'Date', 'Status', 'Time'],
-        
+        ["Employee Name", "Employee ID", "Date", "Status", "Time"],
         // Data rows
-        ...attendanceData.map(record => [
-          record.employee_name,
-          record.employee_id,
-          new Date().toISOString().slice(0, 10),
-          record.status,
-          record.timestamp
-        ])
+        ...Object.entries(attendanceData).flatMap(([date, records]) =>
+          records.map((record) => [
+            record.employeeName,
+            record.employeeId,
+            date,
+            record.status,
+            record.time || "-",
+          ])
+        ),
       ];
 
       const wb = xlsxUtils.book_new();
       const ws = xlsxUtils.aoa_to_sheet(wsData);
-
-      // Set column widths
-      ws['!cols'] = [
-        { wch: 20 }, // Employee Name
-        { wch: 15 }, // Employee ID
-        { wch: 12 }, // Date
-        { wch: 8 },  // Status
-        { wch: 10 }  // Time
+      ws["!cols"] = [
+        { wch: 20 },
+        { wch: 15 },
+        { wch: 12 },
+        { wch: 8 },
+        { wch: 10 },
       ];
-
       xlsxUtils.book_append_sheet(wb, ws, `Attendance-${year}-${month}`);
       xlsxWriteFile(wb, `Attendance_Report_${year}_${month}.xlsx`);
     } catch (error) {
-      console.error('Error exporting to Excel:', error);
-      setError('Failed to export attendance data');
+      console.error("Error exporting to Excel:", error);
+      setError("Failed to export attendance data");
     }
   };
 
-  useEffect(() => {
-    if (token) {
-      fetchEmployees();
-    } else {
-      setError("No access token found. Please log in.");
-      setLoading(false);
-    }
-  }, [token]);
-
-  useEffect(() => {
-    if (token) {
-      fetchAttendanceData();
-    }
-  }, [selectedMonth, token]);
-
   const renderAttendanceTable = () => {
-    if (!employees.length || !attendanceData) return null;
+    if (loading) return <div className="text-center py-4">Loading attendance data...</div>;
+    if (error) return <div className="text-center py-4 text-red-500">{error}</div>;
+    if (!employees.length) return null;
 
-    const [year, month] = selectedMonth.split('-');
+    const [year, month] = selectedMonth.split("-");
     const daysInMonth = Array.from(
-      { length: monthInfo.days_in_month }, 
+      { length: monthInfo.days_in_month },
       (_, i) => i + 1
     );
 
     return (
-      <div className="mt-8 pt-8 border-t border-gray-200">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <h2 className="text-2xl font-bold text-gray-900">Monthly Attendance</h2>
-            <button
-              onClick={exportToExcel}
-              className="inline-flex items-center bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-black transition-all duration-300 text-sm"
-            >
-              <svg 
-                className="w-4 h-4 mr-2" 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
+      <div className="mt-8 bg-white rounded-lg shadow overflow-hidden">
+        <div className="p-4 border-b border-gray-200">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold text-gray-800">Attendance Record</h2>
+            <div className="flex gap-4">
+              <input
+                type="month"
+                value={selectedMonth}
+                onChange={handleMonthChange}
+                max={new Date().toISOString().slice(0, 7)}
+                className="border rounded px-3 py-2"
+              />
+              <button
+                onClick={exportToExcel}
+                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
               >
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth={2} 
-                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                />
-              </svg>
-              Export to Excel
-            </button>
-          </div>
-          <div className="flex items-center gap-4">
-            <input
-              type="month"
-              value={selectedMonth}
-              onChange={handleMonthChange}
-              max={new Date().toISOString().slice(0, 7)}
-              className="p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-200 outline-none"
-            />
-            {error && (
-              <span className="text-red-500 text-sm">{error}</span>
-            )}
+                Export to Excel
+              </button>
+            </div>
           </div>
         </div>
-
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="p-3 border border-gray-200 text-left sticky left-0 bg-gray-100 z-10">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50 z-10">
                   Employee
                 </th>
-                {daysInMonth.map(day => (
-                  <th key={day} className="p-3 border border-gray-200 min-w-[80px]">
+                {daysInMonth.map((day) => (
+                  <th
+                    key={day}
+                    className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
                     {day}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody>
-              {employees.map(employee => (
+            <tbody className="bg-white divide-y divide-gray-200">
+              {employees.map((employee) => (
                 <tr key={employee.unique_id}>
-                  <td className="p-3 border border-gray-200 sticky left-0 bg-white z-10">
+                  <td className="px-6 py-4 whitespace-nowrap sticky left-0 bg-white z-10">
                     {employee.name}
                   </td>
-                  {daysInMonth.map(day => {
+                  {daysInMonth.map((day) => {
                     const date = formatDate(year, month, day);
-                    const record = attendanceData.find(
-                      record => record.employee_id === employee.unique_id && 
-                               record.date === date
+                    const record = attendanceData[date]?.find(
+                      (rec) => rec.employeeId === employee.id
                     );
-                    
-                    // Debug log for matching records
-                    console.log('Checking attendance match:', {
-                      employeeId: employee.unique_id,
-                      date,
-                      found: !!record,
-                      record
-                    });
-                    
-                    const statusColors = {
-                      'P': 'text-green-600',
-                      'A': 'text-red-600',
-                      'L': 'text-yellow-600',
-                      '-': 'text-gray-400'
-                    };
-
                     return (
-                      <td 
-                        key={`${employee.unique_id}-${day}`}
-                        className={`p-3 border border-gray-200 text-center font-medium ${
-                          statusColors[record?.status || '-']
-                        }`}
-                      >
-                        <div className="flex flex-col items-center">
-                          <span>{record?.status || '-'}</span>
-                          {record?.timestamp && (
-                            <span className="text-xs text-gray-500">
-                              {record.timestamp}
-                            </span>
+                      <td key={`${employee.unique_id}-${day}`} className="px-6 py-4 text-center">
+                        <div
+                          className={`
+                            ${record?.status === "P" && "text-green-600"}
+                            ${record?.status === "A" && "text-red-600"}
+                            ${record?.status === "L" && "text-yellow-600"}
+                          `}
+                        >
+                          <div>{record?.status || "-"}</div>
+                          {record?.time && (
+                            <div className="text-xs text-gray-500">{record.time}</div>
                           )}
                         </div>
                       </td>
@@ -317,18 +319,14 @@ const ManageEmployee = () => {
         <button
           onClick={() => fetchEmployees(pagination.currentPage - 1)}
           disabled={pagination.currentPage === 1}
-          className="relative inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg
-            text-gray-700 bg-white border border-gray-300 hover:bg-gray-50
-            disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+          className="relative inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
         >
           Previous
         </button>
         <button
           onClick={() => fetchEmployees(pagination.currentPage + 1)}
           disabled={pagination.currentPage === pagination.totalPages}
-          className="relative inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg
-            text-gray-700 bg-white border border-gray-300 hover:bg-gray-50
-            disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+          className="relative inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
         >
           Next
         </button>
@@ -336,16 +334,29 @@ const ManageEmployee = () => {
     </div>
   );
 
+  useEffect(() => {
+    if (token) {
+      fetchEmployees();
+    } else {
+      setError("No access token found. Please log in.");
+      setLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    fetchAttendanceData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMonth]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-800 p-6">
       <div className="bg-white/90 backdrop-blur-sm shadow-2xl rounded-2xl p-8 border border-gray-100">
-        {/* Loading and Error States */}
         {loading && (
           <div className="text-center py-8">
             <p className="text-gray-600">Loading...</p>
           </div>
         )}
-        
+
         {error && (
           <div className="bg-gray-100 text-gray-900 p-4 rounded-xl mb-6 border border-gray-200">
             {error}
@@ -372,10 +383,7 @@ const ManageEmployee = () => {
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {employees.map((employee) => (
-                      <tr 
-                        key={employee.id} 
-                        className="hover:bg-gray-50 transition-colors duration-200"
-                      >
+                      <tr key={employee.id} className="hover:bg-gray-50 transition-colors duration-200">
                         <td className="p-4 text-gray-800">{employee.name}</td>
                         <td className="p-4 text-gray-800">{employee.email}</td>
                         <td className="p-4 text-gray-800">{employee.unique_id}</td>

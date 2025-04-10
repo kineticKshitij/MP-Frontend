@@ -21,25 +21,29 @@ const MonthlyAttendance = () => {
     fetchAttendanceData();
   }, [selectedMonth, employee]);
 
-  const fetchAttendanceData = async () => {
-    try {
-      const [year, month] = selectedMonth.split('-');
-      const response = await axios.get(
-        `http://127.0.0.1:8000/api/emp/attendance/${year}/${month}/`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      setAttendanceData(response.data || []);
-      setLoading(false);
-    } catch (error) {
-      console.error("Error fetching attendance:", error);
-      setError("Failed to fetch attendance data");
-      setLoading(false);
-    }
-  };
+  // Corrected axios call in your frontend code
+// Example axios call in MonthlyAttendance.jsx
+// Updated axios call in MonthlyAttendance.jsx
+const fetchAttendanceData = async () => {
+  try {
+    const [year, month] = selectedMonth.split('-');
+    const response = await axios.get(
+      `http://127.0.0.1:8000/api/emp/attendance/monthly/${year}/${month}/`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    // Assuming your backend sends {attendance: [...] } in the response
+    setAttendanceData(response.data.attendance || []);
+    setLoading(false);
+  } catch (error) {
+    console.error("Error fetching attendance:", error);
+    setError("Failed to fetch attendance data");
+    setLoading(false);
+  }
+};
 
   const markAttendance = async (status) => {
     try {
