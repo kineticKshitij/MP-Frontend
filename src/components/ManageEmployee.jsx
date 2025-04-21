@@ -110,65 +110,50 @@ const ManageEmployee = () => {
     }
   };
 
-  // Fetch attendance data for the selected month
-  const fetchAttendanceData = async () => {
-    try {
-      const [year, month] = selectedMonth.split("-");
-      setLoading(true);
-      setError(null);
+// In your fetchAttendanceData function:
 
-      const response = await axios.get(
-        `http://localhost:8000/api/emp/attendance/monthly/${year}/${month}/`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+const fetchAttendanceData = async () => {
+  try {
+    const [year, month] = selectedMonth.split("-");
+    setLoading(true);
+    setError(null);
 
-      console.log("Raw API Response:", response.data);
-
-      let dataArray = [];
-      let monthInfoData = { days_in_month: new Date(year, month, 0).getDate() };
-
-      // If the response is an object with a "data" property, use that,
-      // otherwise, assume the response data is directly an array.
-      if (response.data && Array.isArray(response.data)) {
-        dataArray = response.data;
-      } else if (response.data && Array.isArray(response.data.data)) {
-        dataArray = response.data.data;
-        monthInfoData = response.data.month_info || monthInfoData;
-      } else {
-        throw new Error("Invalid response format");
+    const response = await axios.get(
+      `http://localhost:8000/api/emp/attendance/monthly/${year}/${month}/`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       }
+    );
 
-      // Transform the data into an object keyed by date
-      const formattedData = {};
-      dataArray.forEach((record) => {
-        // Map API fields to your expected keys.
-        // Adjust field names if needed.
-        const date = record.date;
-        if (!formattedData[date]) {
-          formattedData[date] = [];
-        }
-        formattedData[date].push({
-          employeeId: record.employee_id || record.employee, // if employee field is numeric id
-          employeeName: record.employee_name || "", // If not provided, leave as empty string
-          status: record.status,
-          time: record.timestamp || "",
-        });
+    // Assume response.data is an array
+    console.log("Raw API Response:", response.data);
+
+    // Transform data so that keys match what your table expects
+    const formattedData = {};
+    response.data.forEach((record) => {
+      const recordDate = record.date; // date in format "YYYY-MM-DD"
+      if (!formattedData[recordDate]) {
+        formattedData[recordDate] = [];
+      }
+      formattedData[record.date].push({
+        employeeId: record.employee_unique_id,
+        employeeName: record.employee_name,
+        time: record.check_in ? record.check_in : "",
+        status: record.status,
       });
-
-      console.log("Formatted Attendance Data:", formattedData);
-      setAttendanceData(formattedData);
-      setMonthInfo(monthInfoData);
-    } catch (error) {
-      console.error("Fetch error:", error);
-      setError(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+    });
+      
+    console.log("Formatted Attendance Data:", formattedData);
+    setAttendanceData(formattedData);
+  } catch (error) {
+    console.error("Fetch error:", error);
+    setError(error.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleMonthChange = (e) => {
     const newDate = e.target.value;
@@ -185,34 +170,58 @@ const ManageEmployee = () => {
     setError(null);
   };
 
-  // Export attendance data to Excel
+  // Updated exportToExcel function to match table layout
   const exportToExcel = () => {
     try {
       const [year, month] = selectedMonth.split("-");
-      const wsData = [
-        // Header row
-        ["Employee Name", "Employee ID", "Date", "Status", "Time"],
-        // Data rows
-        ...Object.entries(attendanceData).flatMap(([date, records]) =>
-          records.map((record) => [
-            record.employeeName,
-            record.employeeId,
-            date,
-            record.status,
-            record.time || "-",
-          ])
+      // Calculate number of days in the month (or use monthInfo if updated)
+      const numDays = monthInfo.days_in_month || new Date(year, month, 0).getDate();
+      const daysArray = Array.from({ length: numDays }, (_, i) => i + 1);
+
+      // Prepare header row: first "Employee", then a column per day with the full date
+      const headerRow = [
+        "Employee",
+        ...daysArray.map((day) =>
+          `${year}-${month.padStart(2, "0")}-${String(day).padStart(2, "0")}`
         ),
       ];
 
+      // Create one row per employee
+      const dataRows = employees.map((employee) => {
+        const row = [employee.name];
+        const today = new Date().toISOString().slice(0, 10);
+        daysArray.forEach((day) => {
+          const date = formatDate(year, month, day);
+          // Find attendance record for this employee on this date
+          const record = attendanceData[date]?.find(
+            (rec) => rec.employeeId === employee.unique_id
+          );
+          if (record) {
+            // If the record exists, ensure a space between status and time
+            const cellContent = record.time
+              ? `${record.status} ${record.time}`
+              : record.status;
+            row.push(cellContent);
+          } else {
+            // For past dates (date < today) without a record, mark as "A"
+            row.push(date < today ? "A" : "-");
+          }
+        });
+        return row;
+      });
+
+      // Combine header and data rows
+      const wsData = [headerRow, ...dataRows];
+
       const wb = xlsxUtils.book_new();
       const ws = xlsxUtils.aoa_to_sheet(wsData);
+
+      // Set column widths: first is wider; others are fixed width
       ws["!cols"] = [
-        { wch: 20 },
-        { wch: 15 },
-        { wch: 12 },
-        { wch: 8 },
-        { wch: 10 },
+        { wch: 20 }, // Employee name column
+        ...daysArray.map(() => ({ wch: 12 })),
       ];
+
       xlsxUtils.book_append_sheet(wb, ws, `Attendance-${year}-${month}`);
       xlsxWriteFile(wb, `Attendance_Report_${year}_${month}.xlsx`);
     } catch (error) {
@@ -280,7 +289,7 @@ const ManageEmployee = () => {
                   {daysInMonth.map((day) => {
                     const date = formatDate(year, month, day);
                     const record = attendanceData[date]?.find(
-                      (rec) => rec.employeeId === employee.id
+                      (rec) => rec.employeeId === employee.unique_id
                     );
                     return (
                       <td key={`${employee.unique_id}-${day}`} className="px-6 py-4 text-center">
