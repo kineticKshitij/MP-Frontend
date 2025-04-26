@@ -1,55 +1,85 @@
 import React, { useState } from "react";
 import Login from "./Login";
-import SignIn from "./Signin";
-import SignUp from "./Signup";
+import Signin from "./Signin";
+import Signup from "./Signup";
 
 const AuthContainer = () => {
-  const [activeForm, setActiveForm] = useState("login");
+  // Primary tabs: "employee" or "organization"
+  const [activeTab, setActiveTab] = useState("employee");
+  // For organization sub-tabs: "signin" or "signup"
+  const [orgTab, setOrgTab] = useState("signin");
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-800">
-      <div className="bg-white/90 backdrop-blur-sm shadow-2xl rounded-2xl p-8 w-[480px] border border-gray-100">
-        <h2 className="text-3xl font-bold text-gray-900 text-center mb-6 border-b border-gray-200 pb-4">
-          Welcome Back!
-        </h2>
-
-        <div className="flex justify-around mb-8 bg-gray-100 p-1.5 rounded-xl">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-950 via-gray-900 to-gray-800 p-4">
+      <div className="bg-white border-2 border-black rounded-lg shadow-2xl w-full max-w-[750px] overflow-hidden">
+        {/* Primary Tab Controls */}
+        <div className="flex">
           <button
-            className={`px-6 py-2.5 font-medium rounded-lg transition-all duration-300 ${
-              activeForm === "login"
-                ? "bg-gray-900 text-white shadow-md"
-                : "bg-transparent text-gray-600 hover:text-gray-900"
-            }`}
-            onClick={() => setActiveForm("login")}
+            onClick={() => setActiveTab("employee")}
+            className={`flex-1 py-4 text-center font-bold ${
+              activeTab === "employee"
+                ? "bg-black text-white"
+                : "bg-white text-black"
+            } transition-colors duration-500`}
           >
-            Login
+            Employee
           </button>
           <button
-            className={`px-6 py-2.5 font-medium rounded-lg transition-all duration-300 ${
-              activeForm === "signin"
-                ? "bg-gray-900 text-white shadow-md"
-                : "bg-transparent text-gray-600 hover:text-gray-900"
-            }`}
-            onClick={() => setActiveForm("signin")}
+            onClick={() => setActiveTab("organization")}
+            className={`flex-1 py-4 text-center font-bold ${
+              activeTab === "organization"
+                ? "bg-black text-white"
+                : "bg-white text-black"
+            } transition-colors duration-500`}
           >
-            Sign In
-          </button>
-          <button
-            className={`px-6 py-2.5 font-medium rounded-lg transition-all duration-300 ${
-              activeForm === "signup"
-                ? "bg-gray-900 text-white shadow-md"
-                : "bg-transparent text-gray-600 hover:text-gray-900"
-            }`}
-            onClick={() => setActiveForm("signup")}
-          >
-            Sign Up
+            Organization
           </button>
         </div>
-
-        <div className="transition-all duration-300 ease-in-out">
-          {activeForm === "login" && <Login />}
-          {activeForm === "signin" && <SignIn />}
-          {activeForm === "signup" && <SignUp />}
+        <div className="p-8">
+          {activeTab === "employee" ? (
+            <div
+              key="employee"
+              className="transition-opacity duration-500 ease-in-out opacity-100"
+            >
+              <h2 className="text-center text-2xl font-bold mb-4">
+                Employee Login
+              </h2>
+              <Login />
+            </div>
+          ) : (
+            <div
+              key="organization"
+              className="transition-opacity duration-500 ease-in-out opacity-100"
+            >
+              {/* Organization Sub-Tab Controls */}
+              <div className="flex mb-4 transition-colors duration-500">
+                <button
+                  onClick={() => setOrgTab("signin")}
+                  className={`flex-1 py-2 text-center font-semibold ${
+                    orgTab === "signin"
+                      ? "bg-black text-white"
+                      : "bg-gray-100 text-black"
+                  }`}
+                >
+                  Signin
+                </button>
+                <button
+                  onClick={() => setOrgTab("signup")}
+                  className={`flex-1 py-2 text-center font-semibold ${
+                    orgTab === "signup"
+                      ? "bg-black text-white"
+                      : "bg-gray-100 text-black"
+                  }`}
+                >
+                  Signup
+                </button>
+              </div>
+              <div className="transition-opacity duration-500 ease-in-out opacity-100">
+                {orgTab === "signin" && <Signin />}
+                {orgTab === "signup" && <Signup />}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

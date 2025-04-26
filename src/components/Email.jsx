@@ -2,12 +2,9 @@ import emailjs from "@emailjs/browser";
 
 export const sendOTP = async (email) => {
   if (!email || email.trim() === "") {
-    alert("Email is required.");
     console.error("sendOTP Error: Email is empty.");
-    return false;
+    return { success: false, message: "Email is required." };
   }
-
-  console.log("Sending OTP to:", email); // Debugging step
 
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   localStorage.setItem("otp", otp);
@@ -15,7 +12,7 @@ export const sendOTP = async (email) => {
   const templateParams = {
     to_name: "User",
     from_name: "Minor Project",
-    to_email: email.trim(), // Ensure this matches the template
+    to_email: email.trim(),
     otp: otp,
   };
 
@@ -26,13 +23,13 @@ export const sendOTP = async (email) => {
       templateParams,
       "oazL-ZEsF5twNev1Y"
     );
-
     console.log("EmailJS Response:", response);
-    alert("OTP sent to your email.");
-    return true;
+    return { success: true, message: "OTP sent to your email." };
   } catch (error) {
     console.error("EmailJS Error:", error);
-    alert("Failed to send OTP. Please check your EmailJS settings.");
-    return false;
+    return {
+      success: false,
+      message: "Failed to send OTP. Please check your EmailJS settings.",
+    };
   }
 };

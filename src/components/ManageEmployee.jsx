@@ -138,10 +138,11 @@ const fetchAttendanceData = async () => {
         formattedData[recordDate] = [];
       }
       formattedData[record.date].push({
-        employeeId: record.employee_unique_id,
+        employeeId:   record.employee_unique_id,
         employeeName: record.employee_name,
-        time: record.check_in ? record.check_in : "",
-        status: record.status,
+        checkIn:      record.check_in   || "",
+        checkOut:     record.check_out  || "",
+        status:       record.status,
       });
     });
       
@@ -174,61 +175,69 @@ const fetchAttendanceData = async () => {
   const exportToExcel = () => {
     try {
       const [year, month] = selectedMonth.split("-");
-      // Calculate number of days in the month (or use monthInfo if updated)
-      const numDays = monthInfo.days_in_month || new Date(year, month, 0).getDate();
+      const numDays =
+        monthInfo.days_in_month || new Date(year, month, 0).getDate();
       const daysArray = Array.from({ length: numDays }, (_, i) => i + 1);
-
-      // Prepare header row: first "Employee", then a column per day with the full date
+  
+      // Prepare header row
       const headerRow = [
         "Employee",
         ...daysArray.map((day) =>
           `${year}-${month.padStart(2, "0")}-${String(day).padStart(2, "0")}`
         ),
       ];
-
-      // Create one row per employee
+  
+      // Build rows
       const dataRows = employees.map((employee) => {
         const row = [employee.name];
         const today = new Date().toISOString().slice(0, 10);
+  
         daysArray.forEach((day) => {
           const date = formatDate(year, month, day);
-          // Find attendance record for this employee on this date
           const record = attendanceData[date]?.find(
             (rec) => rec.employeeId === employee.unique_id
           );
+  
           if (record) {
-            // If the record exists, ensure a space between status and time
-            const cellContent = record.time
-              ? `${record.status} ${record.time}`
-              : record.status;
-            row.push(cellContent);
+            // Compose "<STATUS> <CHECK_IN>-<CHECK_OUT>"
+            const times = [];
+            if (record.checkIn) times.push(record.checkIn);
+            if (record.checkOut) times.push(record.checkOut);
+            const timePart = times.length ? times.join("–") : "";
+            row.push(`${record.status}${timePart ? " " + timePart : ""}`);
           } else {
-            // For past dates (date < today) without a record, mark as "A"
+            // Past dates without record => "A", future => "-"
             row.push(date < today ? "A" : "-");
           }
         });
+  
         return row;
       });
-
-      // Combine header and data rows
+  
+      // Combine and write
       const wsData = [headerRow, ...dataRows];
-
       const wb = xlsxUtils.book_new();
       const ws = xlsxUtils.aoa_to_sheet(wsData);
-
-      // Set column widths: first is wider; others are fixed width
       ws["!cols"] = [
-        { wch: 20 }, // Employee name column
-        ...daysArray.map(() => ({ wch: 12 })),
+        { wch: 20 },
+        ...daysArray.map(() => ({ wch: 18 })), // a bit wider for the two times
       ];
-
-      xlsxUtils.book_append_sheet(wb, ws, `Attendance-${year}-${month}`);
-      xlsxWriteFile(wb, `Attendance_Report_${year}_${month}.xlsx`);
+  
+      xlsxUtils.book_append_sheet(
+        wb,
+        ws,
+        `Attendance-${year}-${month}`
+      );
+      xlsxWriteFile(
+        wb,
+        `Attendance_Report_${year}_${month}.xlsx`
+      );
     } catch (error) {
       console.error("Error exporting to Excel:", error);
       setError("Failed to export attendance data");
     }
   };
+  
 
   const renderAttendanceTable = () => {
     if (loading) return <div className="text-center py-4">Loading attendance data...</div>;
@@ -293,18 +302,20 @@ const fetchAttendanceData = async () => {
                     );
                     return (
                       <td key={`${employee.unique_id}-${day}`} className="px-6 py-4 text-center">
-                        <div
-                          className={`
+                        <div className={`
                             ${record?.status === "P" && "text-green-600"}
                             ${record?.status === "A" && "text-red-600"}
                             ${record?.status === "L" && "text-yellow-600"}
-                          `}
-                        >
+                        `}>
                           <div>{record?.status || "-"}</div>
-                          {record?.time && (
-                            <div className="text-xs text-gray-500">{record.time}</div>
-                          )}
+                          <div className="text-xs text-gray-500">
+                            {record?.checkIn  && <>In: {record.checkIn}</>}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {record?.checkOut && <>Out: {record.checkOut}</>}
+                          </div>
                         </div>
+
                       </td>
                     );
                   })}
